@@ -177,7 +177,7 @@ def main():
         model = DDP(model, delay_allreduce=True)
 
     # define loss function (criterion) and optimizer
-    criterion = nn.CrossEntropyLoss().cuda()
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1).cuda()
 
     # Optionally resume from a checkpoint
     if args.resume:
@@ -202,19 +202,22 @@ def main():
     traindir = os.path.join(args.data, 'train')
     valdir = os.path.join(args.data, 'val')
 
-    if (args.arch == "inception_v3"):
-        raise RuntimeError("Currently, inception_v3 is not supported by this example.")
-        # crop_size = 299
-        # val_size = 320 # I chose this value arbitrarily, we can adjust.
-    else:
-        crop_size = 224
-        val_size = 256
+    # if (args.arch == "inception_v3"):
+    #     raise RuntimeError("Currently, inception_v3 is not supported by this example.")
+    #     # crop_size = 299
+    #     # val_size = 320 # I chose this value arbitrarily, we can adjust.
+    # else:
+    #     crop_size = 224
+    #     val_size = 256
+    crop_size = 256
+    val_size = 288
 
     train_dataset = datasets.ImageFolder(
         traindir,
         transforms.Compose([
             transforms.RandomResizedCrop(crop_size),
             transforms.RandomHorizontalFlip(),
+            transforms.RandAugment(),
             # transforms.ToTensor(), Too slow
             # normalize,
         ]))
@@ -510,10 +513,19 @@ class AverageMeter(object):
 
 def adjust_learning_rate(optimizer, epoch, step, len_epoch):
     """LR schedule that should yield 76% converged accuracy with batch size 256"""
-    factor = epoch // 30
+    # factor = epoch // 30
+    #
+    # if epoch >= 80:
+    #     factor = factor + 1
 
-    if epoch >= 80:
-        factor = factor + 1
+    if epoch < 60:
+        factor = 0.1
+    elif epoch < 90:
+        factor = 0.01
+    elif epoch < 110:
+        factor = 0.001
+    else:
+        factor = 0.0001
 
     lr = args.lr * (0.1 ** factor)
 
