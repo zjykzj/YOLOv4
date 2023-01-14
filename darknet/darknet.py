@@ -30,7 +30,7 @@ class ConvBNAct(nn.Module):
         if act == 'relu':
             self.act = nn.ReLU(inplace=True)
         elif act == 'leaky_relu':
-            self.act = nn.LeakyReLU(negative_slope=0.1, inplace=True)
+            self.act = nn.LeakyReLU(negative_slope=0.01, inplace=True)
         elif act == 'mish':
             self.act = nn.Mish(inplace=True)
         else:
@@ -67,10 +67,10 @@ class ResBlock(nn.Module):
         return x
 
 
-class CSPDownSample1(nn.Module):
+class CSPDownSample0(nn.Module):
 
     def __init__(self, in_ch=32, out_ch=64, kernel_size=3, stride=2, act='mish'):
-        super(CSPDownSample1, self).__init__()
+        super(CSPDownSample0, self).__init__()
         self.base = ConvBNAct(in_ch=in_ch, out_ch=out_ch, kernel_size=kernel_size, stride=stride, act=act)
         self.part1 = ConvBNAct(in_ch=out_ch, out_ch=out_ch, kernel_size=1, stride=1, act=act)
         self.part2 = nn.Sequential(
@@ -124,7 +124,7 @@ class Backbone(nn.Module):
         super(Backbone, self).__init__()
         self.stem = ConvBNAct(in_ch=3, out_ch=32, kernel_size=3, stride=1, act='mish')
 
-        self.stage1 = CSPDownSample1(in_ch=32, out_ch=64, kernel_size=3, stride=2, act='mish')
+        self.stage1 = CSPDownSample0(in_ch=32, out_ch=64, kernel_size=3, stride=2, act='mish')
         self.stage2 = CSPDownSample(in_ch=64, out_ch=128, kernel_size=3, stride=2, num_blocks=2, act='mish')
         self.stage3 = CSPDownSample(in_ch=128, out_ch=256, kernel_size=3, stride=2, num_blocks=8, act='mish')
         self.stage4 = CSPDownSample(in_ch=256, out_ch=512, kernel_size=3, stride=2, num_blocks=8, act='mish')
@@ -160,7 +160,8 @@ class CSPDarknet53(nn.Module):
 
 if __name__ == '__main__':
     m = CSPDarknet53()
-    data = torch.randn(1, 3, 224, 224)
+    # data = torch.randn(1, 3, 224, 224)
+    data = torch.randn(1, 3, 256, 256)
 
     output = m(data)
     print(output.shape)
