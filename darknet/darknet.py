@@ -33,6 +33,8 @@ class ConvBNAct(nn.Module):
             self.act = nn.LeakyReLU(negative_slope=0.01, inplace=True)
         elif act == 'mish':
             self.act = nn.Mish(inplace=True)
+        elif act == 'linear':
+            self.act = nn.Identity()
         else:
             raise ValueError(f"{act} does not support.")
 
