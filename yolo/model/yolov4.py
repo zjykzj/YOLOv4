@@ -111,21 +111,21 @@ class FPNBlock(nn.Module):
             ConvBNAct(in_ch=256, out_ch=128, kernel_size=1, stride=1, act='leaky_relu'),
         )
 
-    def forward(self, x, last_x1, last_x2):
-        x = self.module1(x)
+    def forward(self, x3, x4, x5):
+        f1 = self.module1(x3)
 
-        x1 = self.module2(x)
-        last_x1 = self.conv8(last_x1)
-        assert x1.shape[2:] == last_x1.shape[2:]
-        x1 = torch.cat((x1, last_x1), dim=1)
-        x1 = self.module3(x1)
+        f2 = self.module2(x3)
+        x4 = self.conv8(x4)
+        assert f2.shape[2:] == x4.shape[2:]
+        f2 = torch.cat((x4, f2), dim=1)
+        f2 = self.module3(f2)
 
-        x2 = self.module4(x1)
-        last_x2 = self.conv15(last_x2)
-        assert x2.shape[2:] == last_x2.shape[2:]
-        x2 = torch.cat((x2, last_x2), dim=1)
+        f3 = self.module4(f2)
+        x5 = self.conv15(x5)
+        assert f3.shape[2:] == x5.shape[2:]
+        f3 = torch.cat((x5, f3), dim=1)
 
-        return x, x1, x2
+        return f3, f2, f1
 
 
 class PANBlock(nn.Module):
@@ -153,18 +153,20 @@ class PANBlock(nn.Module):
             ConvBNAct(in_ch=512, out_ch=1024, kernel_size=3, stride=1, act='leaky_relu'),
         )
 
-    def forward(self, x1, x2, x3):
-        x = self.conv1(x1)
-        assert x.shape[2:] == x2.shape[2:]
-        x = torch.cat((x, x2), dim=1)
-        x2 = self.module1(x)
+    def forward(self, f3, f2, f1):
+        p1 = f3
 
-        x = self.conv8(x2)
-        assert x.shape[2:] == x3.shape[2:]
-        x3 = torch.cat((x, x3), dim=1)
-        x3 = self.module2(x3)
+        p2 = self.conv1(f3)
+        assert p2.shape[2:] == f2.shape[2:]
+        p2 = torch.cat((p2, f2), dim=1)
+        p2 = self.module1(p2)
 
-        return x1, x2, x3
+        p3 = self.conv8(p2)
+        assert p3.shape[2:] == f1.shape[2:]
+        p3 = torch.cat((p3, f1), dim=1)
+        p3 = self.module2(p3)
+
+        return p1, p2, p3
 
 
 class Neck(nn.Module):
@@ -179,13 +181,13 @@ class Neck(nn.Module):
         self.fpn = FPNBlock()
         self.pan = PANBlock()
 
-    def forward(self, x1, x2, x3):
-        x1 = self.spp(x1)
+    def forward(self, x3, x4, x5):
+        spp_output = self.spp(x3)
 
-        x1, x2, x3 = self.fpn(x1, x2, x3)
-        x1, x2, x3 = self.pan(x1, x2, x3)
+        f3, f2, f1 = self.fpn(spp_output, x4, x5)
+        p1, p2, p3 = self.pan(f1, f2, f3)
 
-        return x1, x2, x3
+        return p1, p2, p3
 
 
 class Head(nn.Module):
@@ -211,25 +213,22 @@ class Head(nn.Module):
             ConvBNAct(in_ch=1024, out_ch=output_channels, kernel_size=1, stride=1, act='leaky_relu'),
         )
 
-    def forward(self, x1, x2, x3):
+    def forward(self, p1, p2, p3):
         """
-        x1: [B, 128, H/8, W/8]
-        x2: [B, 256, H/16, W/16]
-        x3: [B, 512, H/32, W/32]
+        p1: [B, 128, H/8, W/8]
+        p2: [B, 256, H/16, W/16]
+        p3: [B, 512, H/32, W/32]
         """
-        assert input1.shape[1] == 128
-        x1 = self.yolo1(input1)
+        assert p1.shape[1] == 128
+        p1 = self.yolo1(p1)
 
-        x = self.conv3(input1)
-        x = torch.cat([x, input2], dim=1)
-        assert x.shape[1] == 512
-        x2 = self.yolo2(x)
+        assert p2.shape[1] == 512
+        p2 = self.yolo2(p2)
 
-        x = self.conv11()
-        assert x3.shape[1] == 1024
-        x3 = self.yolo3(x3)
+        assert p3.shape[1] == 1024
+        p3 = self.yolo3(p3)
 
-        return x1, x2, x3
+        return p1, p2, p3
 
 
 class YOLOv4(nn.Module):
@@ -267,15 +266,15 @@ class YOLOv4(nn.Module):
 
     def forward(self, x):
         # x: [B, 3, H, W]
-        x1, x2, x3 = self.backbone(x)
-        # x1: [B, 256, H/8, W/8]
-        # x2: [B, 512, H/16, W/16]
-        # x3: [B, 1024, H/32, W/32]
-        x1, x2, x3 = self.neck(x3, x2, x1)
-        # x1: [B, 512, H/32, W/32]
-        # x2: [B, 256, H/16, W/16]
-        # x3: [B, 128, H/8, W/8]
-        x1, x2, x3 = self.head(x3, x2, x1)
+        x3, x4, x5 = self.backbone(x)
+        # x3: [B, 256, H/8, W/8]
+        # x4: [B, 512, H/16, W/16]
+        # x5: [B, 1024, H/32, W/32]
+        p1, p2, p3 = self.neck(x3, x4, x5)
+        # p1: [B, 128, H/8, W/8]
+        # p2: [B, 256, H/16, W/16]
+        # p3: [B, 512, H/32, W/32]
+        x1, x2, x3 = self.head(p1, p2, p3)
         # x1: [B, H/32 * W/32 * 3, 85]
         # x2: [B, H/16 * W/16 * 3, 85]
         # x3: [B, H/8 * W/8 * 3, 85]
@@ -296,7 +295,7 @@ if __name__ == '__main__':
         cfg = yaml.safe_load(f)
 
     # 创建YOLOv3
-    model = YOLOv3(cfg['MODEL'])
+    model = YOLOv4(cfg['MODEL'])
     # model = ConvBNAct(in_ch=3, out_ch=3, kernel_size=1, stride=1)
     print(model)
     model.eval()
