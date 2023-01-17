@@ -519,13 +519,13 @@ def adjust_learning_rate(optimizer, epoch, step, len_epoch):
     #     factor = factor + 1
 
     if epoch < 60:
-        factor = 0.1
+        factor = 1
     elif epoch < 90:
-        factor = 0.01
+        factor = 2
     elif epoch < 110:
-        factor = 0.001
+        factor = 3
     else:
-        factor = 0.0001
+        factor = 4
 
     lr = args.lr * (0.1 ** factor)
 
