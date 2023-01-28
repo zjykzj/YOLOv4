@@ -15,9 +15,13 @@ import numpy as np
 
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar', output_dir='./'):
-    torch.save(state, os.path.join(output_dir, filename))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    ckpt_path = os.path.join(output_dir, filename)
+    torch.save(state, ckpt_path)
     if is_best:
-        shutil.copyfile(filename, os.path.join(output_dir, 'model_best.pth.tar'))
+        shutil.copyfile(ckpt_path, os.path.join(output_dir, 'model_best.pth.tar'))
 
 
 def synchronize():
