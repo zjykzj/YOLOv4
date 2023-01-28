@@ -50,11 +50,11 @@ class YOLOLayer(nn.Module):
         [B, n_anchors, F_H, F_W, n_ch] -> [B, n_anchors * F_H * F_W, n_ch]
     """
 
-    def __init__(self, cfg, layer_no, in_ch):
+    def __init__(self, cfg, layer_no):
         super(YOLOLayer, self).__init__()
 
         # 预先设定的缩放倍数
-        strides = [32, 16, 8]
+        strides = [8, 16, 32]
         # 当前YOLOLayer使用的缩放倍数
         self.stride = strides[layer_no]
         self.layer_no = layer_no
@@ -71,14 +71,8 @@ class YOLOLayer(nn.Module):
 
         # 数据集类别数
         self.n_classes = cfg['N_CLASSES']
-        # 1x1卷积操作，计算特征图中每个网格的预测框（锚点框数量*(类别数+4(xywh)+1(置信度))）
-        self.conv = nn.Conv2d(in_channels=in_ch,
-                              out_channels=self.n_anchors * (self.n_classes + 5),
-                              kernel_size=(1, 1), stride=(1, 1), padding=0)
 
-    def forward(self, x):
-        output = self.conv(x)
-
+    def forward(self, output):
         # 批量大小
         batchsize = output.shape[0]
         # 特征图空间尺寸
@@ -86,7 +80,7 @@ class YOLOLayer(nn.Module):
         # 输出通道数
         # n_ch = 4(xywh) + 1(conf) + n_classes
         n_ch = 5 + self.n_classes
-        dtype = torch.cuda.FloatTensor if x.is_cuda else torch.FloatTensor
+        dtype = torch.cuda.FloatTensor if output.is_cuda else torch.FloatTensor
 
         # [B, C_out, F_H, F_W] -> [B, n_anchors, n_ch, F_H, F_W]
         # C_out = n_anchors * (5 + n_classes)

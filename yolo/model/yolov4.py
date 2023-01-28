@@ -14,8 +14,8 @@ import os
 import torch
 from torch import nn
 
-from darknet.darknet import ConvBNAct, ResBlock, DownSample
-from .yololayer import YOLOLayer
+from darknet.darknet import ConvBNAct, CSPDownSample0, CSPDownSample
+from yololayer import YOLOLayer
 
 from yolo.util import logging
 
@@ -26,13 +26,13 @@ class Backbone(nn.Module):
 
     def __init__(self):
         super(Backbone, self).__init__()
-        self.stem = ConvBNAct(in_ch=3, out_ch=32, kernel_size=3, stride=1)
+        self.stem = ConvBNAct(in_ch=3, out_ch=32, kernel_size=3, stride=1, act='mish')
 
-        self.stage1 = DownSample(in_ch=32, out_ch=64, kernel_size=3, stride=2, num_blocks=1)
-        self.stage2 = DownSample(in_ch=64, out_ch=128, kernel_size=3, stride=2, num_blocks=2)
-        self.stage3 = DownSample(in_ch=128, out_ch=256, kernel_size=3, stride=2, num_blocks=8)
-        self.stage4 = DownSample(in_ch=256, out_ch=512, kernel_size=3, stride=2, num_blocks=8)
-        self.stage5 = DownSample(in_ch=512, out_ch=1024, kernel_size=3, stride=2, num_blocks=4)
+        self.stage1 = CSPDownSample0(in_ch=32, out_ch=64, kernel_size=3, stride=2, act='mish')
+        self.stage2 = CSPDownSample(in_ch=64, out_ch=128, kernel_size=3, stride=2, num_blocks=2, act='mish')
+        self.stage3 = CSPDownSample(in_ch=128, out_ch=256, kernel_size=3, stride=2, num_blocks=8, act='mish')
+        self.stage4 = CSPDownSample(in_ch=256, out_ch=512, kernel_size=3, stride=2, num_blocks=8, act='mish')
+        self.stage5 = CSPDownSample(in_ch=512, out_ch=1024, kernel_size=3, stride=2, num_blocks=4, act='mish')
 
     def forward(self, x):
         x = self.stem(x)
@@ -53,7 +53,7 @@ class SPPBlock(nn.Module):
         self.conv1 = nn.Sequential(
             ConvBNAct(in_ch=1024, out_ch=512, kernel_size=1, stride=1, act="leaky_relu"),
             ConvBNAct(in_ch=512, out_ch=1024, kernel_size=3, stride=1, act="leaky_relu"),
-            ConvBNAct(in_ch=1024, out_ch=1024, kernel_size=1, stride=1, act="leaky_relu"),
+            ConvBNAct(in_ch=1024, out_ch=512, kernel_size=1, stride=1, act="leaky_relu"),
         )
 
         self.max_pool1 = nn.MaxPool2d(kernel_size=5, stride=1, padding=5 // 2)
@@ -106,26 +106,32 @@ class FPNBlock(nn.Module):
         self.module5 = nn.Sequential(
             ConvBNAct(in_ch=256, out_ch=128, kernel_size=1, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=128, out_ch=256, kernel_size=3, stride=1, act='leaky_relu'),
-            ConvBNAct(in_ch=256, out_ch=256, kernel_size=1, stride=1, act='leaky_relu'),
+            ConvBNAct(in_ch=256, out_ch=128, kernel_size=1, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=128, out_ch=256, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=256, out_ch=128, kernel_size=1, stride=1, act='leaky_relu'),
         )
 
     def forward(self, x3, x4, x5):
-        f1 = self.module1(x3)
+        """
+        x3: [B, 256, H/8, H/8] --> f1
+        x4: [B, 512, H/16, H/16] --> f2
+        x5: [B, 512, H/32, H/32] --> f3
+        """
+        f3 = self.module1(x5)
 
-        f2 = self.module2(x3)
+        f2 = self.module2(x5)
         x4 = self.conv8(x4)
         assert f2.shape[2:] == x4.shape[2:]
         f2 = torch.cat((x4, f2), dim=1)
         f2 = self.module3(f2)
 
-        f3 = self.module4(f2)
-        x5 = self.conv15(x5)
-        assert f3.shape[2:] == x5.shape[2:]
-        f3 = torch.cat((x5, f3), dim=1)
+        f1 = self.module4(f2)
+        x3 = self.conv15(x3)
+        assert f1.shape[2:] == x3.shape[2:]
+        f1 = torch.cat((x3, f1), dim=1)
+        f1 = self.module5(f1)
 
-        return f3, f2, f1
+        return f1, f2, f3
 
 
 class PANBlock(nn.Module):
@@ -140,30 +146,31 @@ class PANBlock(nn.Module):
             ConvBNAct(in_ch=512, out_ch=256, kernel_size=1, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=256, out_ch=512, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=512, out_ch=256, kernel_size=1, stride=1, act='leaky_relu'),
-            ConvBNAct(in_ch=256, out_ch=512, kernel_size=3, stride=1, act='leaky_relu'),
         )
 
-        self.conv8 = ConvBNAct(in_ch=256, out_ch=512, kernel_size=3, stride=2, act='leaky_relu')
+        self.conv7 = ConvBNAct(in_ch=256, out_ch=512, kernel_size=3, stride=2, act='leaky_relu')
         self.module2 = nn.Sequential(
             ConvBNAct(in_ch=1024, out_ch=512, kernel_size=1, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=512, out_ch=1024, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=1024, out_ch=512, kernel_size=1, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=512, out_ch=1024, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=1024, out_ch=512, kernel_size=1, stride=1, act='leaky_relu'),
-            ConvBNAct(in_ch=512, out_ch=1024, kernel_size=3, stride=1, act='leaky_relu'),
         )
 
-    def forward(self, f3, f2, f1):
-        p1 = f3
+    def forward(self, f1, f2, f3):
+        # f1: [B, 128, H/8, W/8]
+        # f2: [B, 256, H/16, W/16]
+        # f3: [B, 512, H/32, W/32]
+        p1 = f1
 
-        p2 = self.conv1(f3)
+        p2 = self.conv1(f1)
         assert p2.shape[2:] == f2.shape[2:]
         p2 = torch.cat((p2, f2), dim=1)
         p2 = self.module1(p2)
 
-        p3 = self.conv8(p2)
-        assert p3.shape[2:] == f1.shape[2:]
-        p3 = torch.cat((p3, f1), dim=1)
+        p3 = self.conv7(p2)
+        assert p3.shape[2:] == f3.shape[2:]
+        p3 = torch.cat((p3, f3), dim=1)
         p3 = self.module2(p3)
 
         return p1, p2, p3
@@ -182,10 +189,22 @@ class Neck(nn.Module):
         self.pan = PANBlock()
 
     def forward(self, x3, x4, x5):
-        spp_output = self.spp(x3)
+        """
+        x3: [B, 256, H/8, W/8]
+        x4: [B, 512, H/16, W/16]
+        x5: [B, 1024, H/32, W/32]
+        """
+        spp_output = self.spp(x5)
+        # spp_output: [B, 512, H/32, W/32]
 
-        f3, f2, f1 = self.fpn(spp_output, x4, x5)
+        f1, f2, f3 = self.fpn(x3, x4, spp_output)
+        # f1: [B, 128, H/8, W/8]
+        # f2: [B, 256, H/16, W/16]
+        # f3: [B, 512, H/32, W/32]
         p1, p2, p3 = self.pan(f1, f2, f3)
+        # p1: [B, 128, H/8, W/8]
+        # p2: [B, 256, H/16, W/16]
+        # p3: [B, 512, H/32, W/32]
 
         return p1, p2, p3
 
@@ -201,16 +220,19 @@ class Head(nn.Module):
         self.yolo1 = nn.Sequential(
             ConvBNAct(in_ch=128, out_ch=256, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=256, out_ch=output_channels, kernel_size=3, stride=1, act='linear'),
+            YOLOLayer(cfg, layer_no=0)
         )
 
         self.yolo2 = nn.Sequential(
             ConvBNAct(in_ch=256, out_ch=512, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=512, out_ch=output_channels, kernel_size=1, stride=1, act='linear'),
+            YOLOLayer(cfg, layer_no=1)
         )
 
         self.yolo3 = nn.Sequential(
             ConvBNAct(in_ch=512, out_ch=1024, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=1024, out_ch=output_channels, kernel_size=1, stride=1, act='leaky_relu'),
+            YOLOLayer(cfg, layer_no=2)
         )
 
     def forward(self, p1, p2, p3):
@@ -220,15 +242,15 @@ class Head(nn.Module):
         p3: [B, 512, H/32, W/32]
         """
         assert p1.shape[1] == 128
-        p1 = self.yolo1(p1)
+        x1 = self.yolo1(p1)
 
-        assert p2.shape[1] == 512
-        p2 = self.yolo2(p2)
+        assert p2.shape[1] == 256
+        x2 = self.yolo2(p2)
 
-        assert p3.shape[1] == 1024
-        p3 = self.yolo3(p3)
+        assert p3.shape[1] == 512
+        x3 = self.yolo3(p3)
 
-        return p1, p2, p3
+        return x1, x2, x3
 
 
 class YOLOv4(nn.Module):
@@ -256,7 +278,7 @@ class YOLOv4(nn.Module):
                 # nn.init.constant_(m.weight, 0.01)
                 nn.init.constant_(m.bias, 0)
         if ckpt_path is not None and os.path.isfile(ckpt_path):
-            logger.info(f'Loading pretrained darknet53: {ckpt_path}')
+            logger.info(f'Loading pretrained cspdarknet53: {ckpt_path}')
 
             ckpt = torch.load(ckpt_path, map_location='cpu')['state_dict']
             ckpt = OrderedDict({key: ckpt[key] for key in list(filter(lambda x: 'backbone' in x, ckpt.keys()))})
@@ -275,9 +297,9 @@ class YOLOv4(nn.Module):
         # p2: [B, 256, H/16, W/16]
         # p3: [B, 512, H/32, W/32]
         x1, x2, x3 = self.head(p1, p2, p3)
-        # x1: [B, H/32 * W/32 * 3, 85]
-        # x2: [B, H/16 * W/16 * 3, 85]
-        # x3: [B, H/8 * W/8 * 3, 85]
+        # x1: [B, H/16 * W/16 * 3, 85]
+        # x2: [B, H/8 * W/8 * 3, 85]
+        # x3: [B, H/32 * W/32 * 3, 85]
 
         # res: [B, (H*W + 2H*2W + 4H*4W) / (32*32) * 3, 85]
         #     =[B, H*W*63 / (32*32), 85
@@ -288,7 +310,7 @@ class YOLOv4(nn.Module):
 
 
 if __name__ == '__main__':
-    cfg_file = 'config/yolov3_default.cfg'
+    cfg_file = 'config/yolov4_default.cfg'
     with open(cfg_file, 'r') as f:
         import yaml
 
