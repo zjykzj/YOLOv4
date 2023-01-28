@@ -12,7 +12,7 @@ from typing import Dict
 
 import torch
 
-from .yolov3 import YOLOv3
+from .yolov4 import YOLOv4
 from .yololoss import YOLOLoss
 
 
@@ -22,7 +22,7 @@ def build_model(args: Namespace, cfg: Dict):
     else:
         memory_format = torch.contiguous_format
 
-    model = YOLOv3(cfg['MODEL'])
+    model = YOLOv4(cfg['MODEL'])
     model = model.to(memory_format=memory_format)
 
     return model
