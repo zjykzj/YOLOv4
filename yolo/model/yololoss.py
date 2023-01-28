@@ -115,8 +115,8 @@ class YOLOLoss(nn.Module):
         self.n_classes = cfg['N_CLASSES']
 
         # 损失函数，work for ???
-        self.l2_loss = nn.MSELoss(size_average=False)
-        self.bce_loss = nn.BCELoss(size_average=False)
+        self.l2_loss = nn.MSELoss(reduction="sum")
+        self.bce_loss = nn.BCELoss(reduction="sum")
 
     def forward(self, outputs, target):
         assert isinstance(target, dict)
@@ -377,7 +377,7 @@ class YOLOLoss(nn.Module):
             target[..., 2:4] *= tgt_scale
 
             # 加权二值交叉熵损失
-            bceloss = nn.BCELoss(weight=tgt_scale * tgt_scale, size_average=False)  # weighted BCEloss
+            bceloss = nn.BCELoss(weight=tgt_scale * tgt_scale, reduction="sum")  # weighted BCEloss
             # 计算预测框xc/yc的损失
             loss_xy = bceloss(output[..., :2], target[..., :2])
             # 计算预测框w/h的损失
