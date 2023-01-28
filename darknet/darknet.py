@@ -30,9 +30,9 @@ class ConvBNAct(nn.Module):
         if act == 'relu':
             self.act = nn.ReLU(inplace=True)
         elif act == 'leaky_relu':
-            self.act = nn.LeakyReLU(negative_slope=0.01, inplace=True)
+            self.act = nn.LeakyReLU(negative_slope=0.01, inplace=False)
         elif act == 'mish':
-            self.act = nn.Mish(inplace=True)
+            self.act = nn.Mish(inplace=False)
         elif act == 'linear':
             self.act = nn.Identity()
         else:
