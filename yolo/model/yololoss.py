@@ -106,7 +106,7 @@ class YOLOLoss(nn.Module):
 
         # 特征图相对于
         # [3]
-        self.strides = [32, 16, 8]  # fixed
+        self.strides = [8, 16, 32]  # fixed
         # 预设的锚点框列表，保存了所有的锚点框长宽
         # [9, 2]
         self.anchors = cfg['ANCHORS']
