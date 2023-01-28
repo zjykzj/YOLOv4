@@ -15,7 +15,7 @@ import torch
 from torch import nn
 
 from darknet.darknet import ConvBNAct, CSPDownSample0, CSPDownSample
-from yololayer import YOLOLayer
+from .yololayer import YOLOLayer
 
 from yolo.util import logging
 
