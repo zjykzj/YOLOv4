@@ -20,8 +20,6 @@ class Mish(torch.nn.Module):
         return x
 
 
-
-
 class ConvBNAct(nn.Module):
 
     def __init__(self, in_ch: int, out_ch: int, kernel_size: int, stride: int, act='leaky_relu'):
