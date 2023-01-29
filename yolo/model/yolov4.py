@@ -13,6 +13,7 @@ import os
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from darknet.darknet import ConvBNAct, CSPDownSample0, CSPDownSample
 from .yololayer import YOLOLayer
@@ -73,6 +74,22 @@ class SPPBlock(nn.Module):
         return x
 
 
+class Upsample(nn.Module):
+    def __init__(self):
+        super(Upsample, self).__init__()
+
+    def forward(self, x, target_size):
+        assert (x.data.dim() == 4)
+
+        if self.training:
+            return F.interpolate(x, size=(target_size[2], target_size[3]), mode='nearest')
+        else:
+            return x.view(x.size(0), x.size(1), x.size(2), 1, x.size(3), 1). \
+                expand(x.size(0), x.size(1), x.size(2), target_size[2] // x.size(2), x.size(3),
+                       target_size[3] // x.size(3)). \
+                contiguous().view(x.size(0), x.size(1), target_size[2], target_size[3])
+
+
 class FPNBlock(nn.Module):
 
     def __init__(self):
@@ -83,13 +100,11 @@ class FPNBlock(nn.Module):
             ConvBNAct(in_ch=1024, out_ch=512, kernel_size=1, stride=1, act='leaky_relu')
         )
 
-        self.module2 = nn.Sequential(
-            ConvBNAct(in_ch=512, out_ch=256, kernel_size=1, stride=1),
-            nn.Upsample(scale_factor=2, mode='nearest')
-        )
-        self.conv8 = ConvBNAct(in_ch=512, out_ch=256, kernel_size=1, stride=1, act='leaky_relu')
+        self.conv3 = ConvBNAct(in_ch=512, out_ch=256, kernel_size=1, stride=1)
+        self.upsample1 = Upsample()
+        self.conv4 = ConvBNAct(in_ch=512, out_ch=256, kernel_size=1, stride=1, act='leaky_relu')
 
-        self.module3 = nn.Sequential(
+        self.module2 = nn.Sequential(
             ConvBNAct(in_ch=512, out_ch=256, kernel_size=1, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=256, out_ch=512, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=512, out_ch=256, kernel_size=1, stride=1, act='leaky_relu'),
@@ -97,13 +112,11 @@ class FPNBlock(nn.Module):
             ConvBNAct(in_ch=512, out_ch=256, kernel_size=1, stride=1, act='leaky_relu')
         )
 
-        self.module4 = nn.Sequential(
-            ConvBNAct(in_ch=256, out_ch=128, kernel_size=1, stride=1),
-            nn.Upsample(scale_factor=2, mode='nearest'),
-        )
-        self.conv15 = ConvBNAct(in_ch=256, out_ch=128, kernel_size=1, stride=1, act='leaky_relu')
+        self.conv10 = ConvBNAct(in_ch=256, out_ch=128, kernel_size=1, stride=1)
+        self.upsample2 = Upsample()
+        self.conv11 = ConvBNAct(in_ch=256, out_ch=128, kernel_size=1, stride=1, act='leaky_relu')
 
-        self.module5 = nn.Sequential(
+        self.module3 = nn.Sequential(
             ConvBNAct(in_ch=256, out_ch=128, kernel_size=1, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=128, out_ch=256, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=256, out_ch=128, kernel_size=1, stride=1, act='leaky_relu'),
@@ -119,17 +132,19 @@ class FPNBlock(nn.Module):
         """
         f3 = self.module1(x5)
 
-        f2 = self.module2(x5)
-        x4 = self.conv8(x4)
+        f2 = self.conv3(f3)
+        f2 = self.upsample1(f2, x4.size())
+        x4 = self.conv4(x4)
         assert f2.shape[2:] == x4.shape[2:]
         f2 = torch.cat((x4, f2), dim=1)
-        f2 = self.module3(f2)
+        f2 = self.module2(f2)
 
-        f1 = self.module4(f2)
-        x3 = self.conv15(x3)
+        f1 = self.conv10(f2)
+        f1 = self.upsample2(f1, x3.size())
+        x3 = self.conv11(x3)
         assert f1.shape[2:] == x3.shape[2:]
         f1 = torch.cat((x3, f1), dim=1)
-        f1 = self.module5(f1)
+        f1 = self.module3(f1)
 
         return f1, f2, f3
 
