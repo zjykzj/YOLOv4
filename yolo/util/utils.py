@@ -277,3 +277,24 @@ def yolobox2label(box, info_img):
     # [左上角y1，左上角x1，右下角y2，右下角x2]
     label = [y1, x1, y1 + box_h, x1 + box_w]
     return label
+
+
+def init_seed(seed=None):
+    import random
+    import numpy as np
+
+    # seed必须是int，可以自行设置
+    seed = 1 if seed is None else seed
+    random.seed(seed)
+    np.random.seed(seed)  # numpy产生的随机数一致
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)  # 让显卡产生的随机数一致
+        torch.cuda.manual_seed_all(seed)  # 多卡模式下，让所有显卡生成的随机数一致？这个待验证
+        # CUDA中的一些运算，如对sparse的CUDA张量与dense的CUDA张量调用torch.bmm()，它通常使用不确定性算法。
+        # 为了避免这种情况，就要将这个flag设置为True，让它使用确定的实现。
+        torch.backends.cudnn.deterministic = True
+
+        # 设置这个flag可以让内置的cuDNN的auto-tuner自动寻找最适合当前配置的高效算法，来达到优化运行效率的问题。
+        # 但是由于噪声和不同的硬件条件，即使是同一台机器，benchmark都可能会选择不同的算法。为了消除这个随机性，设置为 False
+        torch.backends.cudnn.benchmark = False
