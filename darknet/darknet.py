@@ -11,6 +11,17 @@ import torch
 from torch import nn
 
 
+class Mish(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        x = x * (torch.tanh(torch.nn.functional.softplus(x)))
+        return x
+
+
+
+
 class ConvBNAct(nn.Module):
 
     def __init__(self, in_ch: int, out_ch: int, kernel_size: int, stride: int, act='leaky_relu'):
@@ -30,9 +41,9 @@ class ConvBNAct(nn.Module):
         if act == 'relu':
             self.act = nn.ReLU(inplace=True)
         elif act == 'leaky_relu':
-            self.act = nn.LeakyReLU(negative_slope=0.01, inplace=False)
+            self.act = nn.LeakyReLU(negative_slope=0.1, inplace=True)
         elif act == 'mish':
-            self.act = nn.Mish(inplace=False)
+            self.act = Mish()
         elif act == 'linear':
             self.act = nn.Identity()
         else:
@@ -75,19 +86,25 @@ class CSPDownSample0(nn.Module):
         super(CSPDownSample0, self).__init__()
         self.base = ConvBNAct(in_ch=in_ch, out_ch=out_ch, kernel_size=kernel_size, stride=stride, act=act)
         self.part1 = ConvBNAct(in_ch=out_ch, out_ch=out_ch, kernel_size=1, stride=1, act=act)
-        self.part2 = nn.Sequential(
-            ConvBNAct(in_ch=out_ch, out_ch=out_ch, kernel_size=1, stride=1, act=act),
+
+        self.part2_1_1 = ConvBNAct(in_ch=out_ch, out_ch=out_ch, kernel_size=1, stride=1, act=act)
+        self.part2_1_2 = nn.Sequential(
             ConvBNAct(in_ch=out_ch, out_ch=out_ch // 2, kernel_size=1, stride=1, act=act),
-            ConvBNAct(in_ch=out_ch // 2, out_ch=out_ch, kernel_size=3, stride=1, act=act),
-            ConvBNAct(in_ch=out_ch, out_ch=out_ch, kernel_size=1, stride=1, act=act),
+            ConvBNAct(in_ch=out_ch // 2, out_ch=out_ch, kernel_size=3, stride=1, act=act)
         )
+        self.part2_2 = ConvBNAct(in_ch=out_ch, out_ch=out_ch, kernel_size=1, stride=1, act=act)
+
         self.transition = ConvBNAct(in_ch=out_ch * 2, out_ch=out_ch, kernel_size=1, stride=1, act=act)
 
     def forward(self, x):
         x = self.base(x)
 
         x1 = self.part1(x)
-        x2 = self.part2(x)
+
+        x2_1_1 = self.part2_1_1(x)
+        x2_1_2 = self.part2_1_2(x2_1_1)
+        x2 = x2_1_1 + x2_1_2
+        x2 = self.part2_2(x2)
 
         x = torch.cat([x2, x1], dim=1)
         x = self.transition(x)
