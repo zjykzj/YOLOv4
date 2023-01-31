@@ -153,9 +153,13 @@ def main():
 
     # Scale learning rate based on global batch size
     args.lr = args.lr * float(args.batch_size * args.world_size) / 256.
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+    # optimizer = torch.optim.SGD(model.parameters(), args.lr,
+    #                             momentum=args.momentum,
+    #                             weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,
+                                 betas=(0.9, 0.999),
+                                 eps=1e-08,
+                                 )
 
     # Initialize Amp.  Amp accepts either values or strings for the optional override arguments,
     # for convenient interoperation with argparse.
