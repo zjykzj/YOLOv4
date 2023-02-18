@@ -29,6 +29,7 @@ def build_data(args: Namespace, cfg: Dict):
                                 is_train=True,
                                 transform=train_transform,
                                 max_num_labels=cfg['DATA']['MAX_NUM_LABELS'],
+                                is_mosaic=cfg['DATA']['AUGMENTATION']
                                 )
     val_dataset = COCODataset(root=args.data,
                               name='val2017',
