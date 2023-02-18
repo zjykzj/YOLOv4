@@ -12,6 +12,7 @@ from torch import nn
 from torch.nn import Module
 
 from .sgd import build_sgd
+from .adam import build_adam
 
 
 def build_optimizer(cfg: Dict, model: Module):
@@ -25,6 +26,8 @@ def build_optimizer(cfg: Dict, model: Module):
 
     if 'SGD' == optimizer_type:
         optimizer = build_sgd(groups, lr=lr, momentum=momentum, weight_decay=weight_decay)
+    elif 'ADAM' == optimizer_type:
+        optimizer = build_adam(groups, lr=lr)
     else:
         raise ValueError(f"{optimizer_type} does not support.")
 
