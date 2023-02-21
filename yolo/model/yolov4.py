@@ -226,7 +226,7 @@ class Neck(nn.Module):
 
 class Head(nn.Module):
 
-    def __init__(self, cfg: Dict):
+    def __init__(self, cfg: Dict, device=None):
         super(Head, self).__init__()
 
         # 输出通道数：坐标（x/y/w/h）+ 坐标框置信度 + 类别数
@@ -235,19 +235,19 @@ class Head(nn.Module):
         self.yolo1 = nn.Sequential(
             ConvBNAct(in_ch=128, out_ch=256, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=256, out_ch=output_channels, kernel_size=3, stride=1, act='linear'),
-            YOLOLayer(cfg, layer_no=0)
+            YOLOLayer(cfg, layer_no=0, device=device)
         )
 
         self.yolo2 = nn.Sequential(
             ConvBNAct(in_ch=256, out_ch=512, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=512, out_ch=output_channels, kernel_size=1, stride=1, act='linear'),
-            YOLOLayer(cfg, layer_no=1)
+            YOLOLayer(cfg, layer_no=1, device=device)
         )
 
         self.yolo3 = nn.Sequential(
             ConvBNAct(in_ch=512, out_ch=1024, kernel_size=3, stride=1, act='leaky_relu'),
             ConvBNAct(in_ch=1024, out_ch=output_channels, kernel_size=1, stride=1, act='leaky_relu'),
-            YOLOLayer(cfg, layer_no=2)
+            YOLOLayer(cfg, layer_no=2, device=device)
         )
 
     def forward(self, p1, p2, p3):
@@ -270,13 +270,13 @@ class Head(nn.Module):
 
 class YOLOv4(nn.Module):
 
-    def __init__(self, cfg: Dict):
+    def __init__(self, cfg: Dict, device=None):
         super(YOLOv4, self).__init__()
         assert cfg['TYPE'] == 'YOLOv4'
 
         self.backbone = Backbone()
         self.neck = Neck()
-        self.head = Head(cfg)
+        self.head = Head(cfg, device=device)
 
         self._init(ckpt_path=cfg['BACKBONE_PRETRAINED'])
 
