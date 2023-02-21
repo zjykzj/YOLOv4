@@ -28,8 +28,6 @@ def build_data(args: Namespace, cfg: Dict):
                                 model_type=cfg['MODEL']['TYPE'],
                                 is_train=True,
                                 transform=train_transform,
-                                max_num_labels=cfg['DATA']['MAX_NUM_LABELS'],
-                                is_mosaic=cfg['DATA']['AUGMENTATION']
                                 )
     val_dataset = COCODataset(root=args.data,
                               name='val2017',
@@ -37,7 +35,6 @@ def build_data(args: Namespace, cfg: Dict):
                               model_type=cfg['MODEL']['TYPE'],
                               is_train=False,
                               transform=val_transform,
-                              max_num_labels=cfg['DATA']['MAX_NUM_LABELS'],
                               )
 
     # 创建采样器

@@ -15,6 +15,7 @@ import numpy as np
 from pycocotools.coco import COCO
 
 import torch
+from torch import Tensor
 from torch.utils.data import Dataset
 
 from yolo.util.utils import bbox2yolobox
@@ -42,7 +43,7 @@ def get_coco_label_names():
                         'couch', 'potted plant', 'bed', 'mirror', 'dining table', 'window', 'desk',
                         'toilet', 'door', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
                         'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'blender', 'book',
-                        'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+                        'clock' , 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
                         )
     coco_class_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20,
                       21, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
@@ -57,7 +58,7 @@ def get_coco_label_names():
 class COCODataset(Dataset):
 
     def __init__(self, root, name: str = 'train2017', img_size: int = 416, min_size: int = 1,
-                 model_type: str = 'YOLO', is_train: bool = True, transform=None, max_num_labels=60, is_mosaic=False):
+                 model_type: str = 'YOLO', is_train: bool = True, transform=None):
         self.root = root
         self.name = name
         self.img_size = img_size
@@ -65,9 +66,6 @@ class COCODataset(Dataset):
         self.model_type = model_type
         self.is_train = is_train
         self.transform = transform
-        # 单张图片预设的最大真值边界框数目
-        self.max_num_labels = max_num_labels
-        self.is_mosaic = is_mosaic
 
         if 'train' in self.name:
             json_file = 'instances_train2017.json'
@@ -94,6 +92,8 @@ class COCODataset(Dataset):
         img_id = self.ids[index]
         # 获取图像路径
         img_file = os.path.join(self.root, 'images', self.name, '{:012}'.format(img_id) + '.jpg')
+        assert os.path.isfile(img_file), img_file
+        img = cv2.imread(img_file)
         # 获取标注框信息
         anno_ids = self.coco.getAnnIds(imgIds=[int(img_id)], iscrowd=None)
         annotations = self.coco.loadAnns(anno_ids)
@@ -101,57 +101,37 @@ class COCODataset(Dataset):
         for anno in annotations:
             if anno['bbox'][2] > self.min_size and anno['bbox'][3] > self.min_size:
                 # bbox: [x, y, w, h]
-                tmp_bbox = anno['bbox']
-                # [x1, y1, x2, y2, cls_id]
-                tmp_label = [tmp_bbox[0], tmp_bbox[1], tmp_bbox[0] + tmp_bbox[2], tmp_bbox[1] + tmp_bbox[3],
-                             self.class_ids.index(anno['category_id'])]
-                bboxes.insert(0, tmp_label)
+                tmp_bbox = list(anno['bbox'])
+                tmp_bbox.append(self.class_ids.index(anno['category_id']))
+                bboxes.insert(0, tmp_bbox)
         bboxes = np.array(bboxes)
 
-        # 读取图像
-        assert os.path.isfile(img_file), img_file
-        img = cv2.imread(img_file)
         return img, bboxes, img_id
 
     def __getitem__(self, index):
-        img_list = list()
-        bboxes_list = list()
-
         img, bboxes, img_id = self.get_img_and_labels(index)
-        img_list.append(img)
-        bboxes_list.append(bboxes)
 
-        if self.is_mosaic:
-            for i in range(3):
-                tmp_index = random.choice(range(len(self.ids)))
-                img, bboxes, _ = self.get_img_and_labels(tmp_index)
-                img_list.append(img)
-                bboxes_list.append(bboxes)
-
-        # 图像预处理
+        target = None
         if self.transform is not None:
-            img, bboxes, img_info = self.transform(img_list, bboxes_list, self.img_size)
-        assert isinstance(img_info, list)
+            img_list = list()
+            bboxes_list = list()
+            img_list.append(img)
+            bboxes_list.append(bboxes)
+
+            if self.transform.is_mosaic:
+                for _ in range(3):
+                    img, bboxes, _ = self.get_img_and_labels()
+                    img_list.append(img)
+                    bboxes_list.append(bboxes)
+
+            img, target = self.transform(img_list, bboxes_list, self.img_size)
+            assert isinstance(img, Tensor)
+            assert isinstance(target, dict)
+
+        img_info = target['img_info']
         img_info.append(img_id)
         img_info.append(index)
-        assert np.all(bboxes <= self.img_size), print(img_info, '\n', bboxes)
 
-        # 每幅图像设置固定个数的真值边界框，不足的填充为0
-        out_bboxes = np.zeros((self.max_num_labels, 5))
-        if len(bboxes) > 0:
-            bboxes = np.stack(bboxes)
-            bboxes = bbox2yolobox(bboxes)
-            assert np.all(bboxes <= self.img_size), print(img_info, '\n', bboxes)
-            out_bboxes[range(len(bboxes))[:self.max_num_labels]] = bboxes[:self.max_num_labels]
-        out_bboxes = torch.from_numpy(out_bboxes)
-
-        # return img, padded_labels, labels, info_img
-        # img: [3, H, W]
-        # padded_labels: [K, 5]
-        target = dict({
-            'padded_labels': out_bboxes,
-            "img_info": img_info
-        })
         # print(padded_labels)
         return img, target
 
