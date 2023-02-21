@@ -31,7 +31,7 @@ except ImportError:
 
 from yolo.optim.lr_schedulers.build import adjust_learning_rate
 from yolo.util.metric import AverageMeter
-from yolo.util.utils import postprocess, yolobox2label
+from yolo.util.utils import postprocess, yolobox2xywh
 
 from yolo.util import logging
 
@@ -102,9 +102,9 @@ def train(args, cfg, train_loader, model, criterion, optimizer, device=None, epo
                 batch_time=batch_time,
                 loss=losses))
 
-            # 每隔10轮都重新指定输入图像大小
-            img_size = (random.randint(0, 9) % 10 + 10) * 32
-            train_loader.dataset.set_img_size(img_size)
+            # # 每隔10轮都重新指定输入图像大小
+            # img_size = (random.randint(0, 9) % 10 + 10) * 32
+            # train_loader.dataset.set_img_size(img_size)
 
 
 @torch.no_grad()
@@ -151,14 +151,16 @@ def validate(val_loader, model, conf_threshold, nms_threshold, device=None):
             # 分类标签
             label = val_loader.dataset.class_ids[int(output[6])]
             # 转换到原始图像边界框坐标
-            box = yolobox2label((y1, x1, y2, x2), img_info[:6])
-            # [y1, x1, y2, x2] -> [x1, y1, w, h]
-            bbox = [box[1], box[0], box[3] - box[1], box[2] - box[0]]
+            bbox = yolobox2xywh((y1, x1, y2, x2), img_info[:4])
             # 置信度 = 目标置信度 * 分类置信度
             score = float(output[4].data.item() * output[5].data.item())  # object score * class score
             # 保存计算结果
-            A = {"image_id": id_, "category_id": label, "bbox": bbox,
-                 "score": score, "segmentation": []}  # COCO json format
+            # COCO json format
+            A = {"image_id": id_,
+                 "category_id": label,
+                 "bbox": bbox,
+                 "score": score,
+                 "segmentation": []}
             data_list.append(A)
 
         # measure elapsed time
