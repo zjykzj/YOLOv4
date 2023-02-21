@@ -121,6 +121,11 @@ class COCODataset(Dataset):
             if self.is_train and self.transform.is_mosaic:
                 for _ in range(3):
                     img, bboxes, _ = self.get_img_and_labels()
+                    while True:
+                        if len(bboxes) > 0:
+                            break
+                        img, bboxes, _ = self.get_img_and_labels()
+
                     img_list.append(img)
                     bboxes_list.append(bboxes)
 

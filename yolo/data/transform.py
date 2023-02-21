@@ -420,7 +420,7 @@ class Transform(object):
                 out_img = img
                 out_bboxes = bboxes
 
-        if self.is_mosaic:
+        if self.is_mosaic and len(out_bboxes) > 0:
             out_bboxes = np.concatenate(out_bboxes, axis=0)
 
         img_info = list()
