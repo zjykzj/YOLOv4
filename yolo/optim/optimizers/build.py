@@ -18,13 +18,13 @@ from .adam import build_adam
 def build_optimizer(cfg: Dict, model: Module):
     optimizer_type = cfg['OPTIMIZER']['TYPE']
     lr = cfg['OPTIMIZER']['LR']
-    momentum = cfg['OPTIMIZER']['MOMENTUM']
-    weight_decay = cfg['OPTIMIZER']['DECAY']
 
     # optimizer setup
     groups = filter_weight(cfg, model)
 
     if 'SGD' == optimizer_type:
+        momentum = cfg['OPTIMIZER']['MOMENTUM']
+        weight_decay = cfg['OPTIMIZER']['DECAY']
         optimizer = build_sgd(groups, lr=lr, momentum=momentum, weight_decay=weight_decay)
     elif 'ADAM' == optimizer_type:
         optimizer = build_adam(groups, lr=lr)
