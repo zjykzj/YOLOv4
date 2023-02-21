@@ -246,6 +246,9 @@ def color_dithering(img, hue, saturation, exposure, is_jitter=True):
 
 
 def filter_truth(bboxes, dx, dy, sx, sy, xd, yd):
+    if len(bboxes) <= 0:
+        return bboxes
+
     assert dx >= 0 and dy >= 0
     # 图像抖动后的边界框坐标
     bboxes[:, 0] -= dx
@@ -358,7 +361,7 @@ class Transform(object):
     图像+标签转换
 
     训练阶段：颜色通道转换（BGR->RGB）、随机裁剪+填充、随机翻转、图像缩放、颜色抖动、mosaic
-    验证阶段：
+    验证阶段：颜色通道转换（BGR->RGB）、图像缩放
     """
 
     def __init__(self, cfg: Dict, is_train: bool = True):
@@ -410,7 +413,8 @@ class Transform(object):
             if self.is_mosaic:
                 assert len(img_list) == 4 and len(bboxes_list) == 4
                 out_img, bboxes = blend_mosaic(out_img, img, bboxes, cut_x, cut_y, idx, crop_info)
-                out_bboxes.append(bboxes)
+                if len(bboxes) > 0:
+                    out_bboxes.append(bboxes)
             else:
                 assert len(img_list) == 1 and len(bboxes_list) == 1
                 out_img = img
@@ -419,21 +423,29 @@ class Transform(object):
         if self.is_mosaic:
             out_bboxes = np.concatenate(out_bboxes, axis=0)
 
-        return out_img, out_bboxes
+        img_info = list()
+        return out_img, out_bboxes, img_info
 
     def _get_val_item(self, img_list: List[ndarray], bboxes_list: List[ndarray], img_size: int):
         assert len(img_list) == 1 and len(bboxes_list) == 1
-        img = img_list[0]
-        bboxes = bboxes_list[0]
+        src_img = img_list[0]
+        src_bboxes = bboxes_list[0]
         # bbox: [x1, y1, x2, y2, cls_id]
-        assert len(bboxes[0]) == 5
+        assert len(src_bboxes) == 0 or len(src_bboxes[0]) == 5
 
         # BGR -> RGB
-        img = img[:, :, ::-1]
-        # [x, y, w, h] -> [x1, y1, x2, y2]
-        bboxes = xywh2xyxy(bboxes)
+        dst_img = src_img[:, :, ::-1]
+        # 图像缩放
+        dst_img, dst_bboxes = image_resize(dst_img, src_bboxes, img_size)
 
-        return img, bboxes
+        src_img_h, src_img_w = src_img.shape[:2]
+        dst_img_h, dst_img_w = dst_img.shape[:2]
+        img_info = [src_img_h, src_img_w, dst_img_h, dst_img_w]
+
+        # [x, y, w, h] -> [x1, y1, x2, y2]
+        dst_bboxes = xywh2xyxy(dst_bboxes)
+
+        return dst_img, dst_bboxes, img_info
 
     def __call__(self, img_list: List[ndarray], bboxes_list: List[ndarray], img_size: int):
         """
@@ -441,9 +453,12 @@ class Transform(object):
         bboxes: [[x1, y1, x2, y2, cls_id], ...]
         """
         if self.is_train:
-            out_img, out_bboxes = self._get_train_item(img_list, bboxes_list, img_size)
+            out_img, out_bboxes, img_info = self._get_train_item(img_list, bboxes_list, img_size)
         else:
-            out_img, out_bboxes = self._get_val_item(img_list, bboxes_list, img_size)
+            out_img, out_bboxes, img_info = self._get_val_item(img_list, bboxes_list, img_size)
+
+        # 数据预处理
+        out_img = torch.from_numpy(out_img).permute(2, 0, 1).contiguous() / 255
 
         # 每幅图像设置固定个数的真值边界框，不足的填充为0
         dst_bboxes = np.zeros((self.max_num_labels, 5))
@@ -452,7 +467,7 @@ class Transform(object):
             # [x1, y1, x2, y2] -> [x_c, y_c, w, h]
             out_bboxes = xyxy2yolobox(out_bboxes)
             assert np.all(out_bboxes[:, :4] <= img_size), print(out_bboxes)
-            dst_bboxes[range(len(out_bboxes))] = out_bboxes[:]
+            dst_bboxes[range(len(out_bboxes))[:self.max_num_labels]] = out_bboxes[:self.max_num_labels]
         dst_bboxes = torch.from_numpy(dst_bboxes)
 
         # return img, padded_labels, labels, info_img
@@ -460,9 +475,7 @@ class Transform(object):
         # padded_labels: [K, 5]
         target = dict({
             'padded_labels': dst_bboxes,
-            'img_info': list()
+            'img_info': img_info
         })
 
-        # 数据预处理
-        out_img = torch.from_numpy(out_img).permute(2, 0, 1).contiguous() / 255
         return out_img, target

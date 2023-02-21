@@ -43,7 +43,7 @@ def get_coco_label_names():
                         'couch', 'potted plant', 'bed', 'mirror', 'dining table', 'window', 'desk',
                         'toilet', 'door', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
                         'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'blender', 'book',
-                        'clock' , 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+                        'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
                         )
     coco_class_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20,
                       21, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
@@ -118,7 +118,7 @@ class COCODataset(Dataset):
             img_list.append(img)
             bboxes_list.append(bboxes)
 
-            if self.transform.is_mosaic:
+            if self.is_train and self.transform.is_mosaic:
                 for _ in range(3):
                     img, bboxes, _ = self.get_img_and_labels()
                     img_list.append(img)
