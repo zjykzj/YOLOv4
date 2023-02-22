@@ -96,7 +96,7 @@ class YOLOLoss(nn.Module):
     操作流程：
     """
 
-    strides = [32, 16, 8]
+    strides = [8, 16, 32]
 
     def __init__(self, cfg: Dict, ignore_thresh=0.7, device=None):
         super(YOLOLoss, self).__init__()
@@ -184,14 +184,22 @@ class YOLOLoss(nn.Module):
         # print(labels[:, :, 2])
         #
         # 将真值标签框的坐标映射到缩放后的特征数据中
+        # # xc: [B, K]
+        # truth_x_all = labels[:, :, 1] / self.stride
+        # # yc: [B, K]
+        # truth_y_all = labels[:, :, 2] / self.stride
+        # # w: [B, K]
+        # truth_w_all = labels[:, :, 3] / self.stride
+        # # h: [B, K]
+        # truth_h_all = labels[:, :, 4] / self.stride
         # xc: [B, K]
-        truth_x_all = labels[:, :, 1] / self.stride
+        truth_x_all = labels[:, :, 0] / self.stride
         # yc: [B, K]
-        truth_y_all = labels[:, :, 2] / self.stride
+        truth_y_all = labels[:, :, 1] / self.stride
         # w: [B, K]
-        truth_w_all = labels[:, :, 3] / self.stride
+        truth_w_all = labels[:, :, 2] / self.stride
         # h: [B, K]
-        truth_h_all = labels[:, :, 4] / self.stride
+        truth_h_all = labels[:, :, 3] / self.stride
         # xc/yc转换成INT16格式i/j，映射到指定网格中
         # truth_i_all = truth_x_all.to(torch.int16).numpy()
         # truth_j_all = truth_y_all.to(torch.int16).numpy()
@@ -358,7 +366,7 @@ class YOLOLoss(nn.Module):
                     # 该预测框的目标置信度设置为1，说明该预测框有效
                     target[b, a, j, i, 4] = 1
                     # 该b张第ti个真值标签框的类下标参与计算
-                    target[b, a, j, i, 5 + labels[b, ti, 0].to(torch.int16)] = 1
+                    target[b, a, j, i, 5 + labels[b, ti, 4].to(torch.int16)] = 1
 
         return target, obj_mask, tgt_mask, tgt_scale
 
@@ -408,6 +416,8 @@ class YOLOLoss(nn.Module):
             # 加权二值交叉熵损失
             bceloss = nn.BCELoss(weight=tgt_scale * tgt_scale, reduction="sum").to(self.device)  # weighted BCEloss
             # 计算预测框xc/yc的损失
+            # assert np.alltrue(0 <= output.detach().cpu().numpy()[..., :2]) and \
+            #        np.alltrue(output.detach().cpu().numpy()[..., :2] <= 1), output[..., :2]
             loss_xy = bceloss(output[..., :2], target[..., :2])
             # 计算预测框w/h的损失
             loss_wh = self.l2_loss(output[..., 2:4], target[..., 2:4]) / 2
@@ -434,20 +444,40 @@ class YOLOLoss(nn.Module):
 
 
 if __name__ == '__main__':
-    cfg_file = 'config/yolov3_default.cfg'
+    # cfg_file = 'config/yolov3_default.cfg'
+    cfg_file = 'config/yolov4_default.cfg'
     with open(cfg_file, 'r') as f:
         import yaml
 
         cfg = yaml.safe_load(f)
 
-    m = YOLOLoss(cfg['MODEL'], 0, ignore_thresh=0.70)
+    m = YOLOLoss(cfg['MODEL'], ignore_thresh=0.70)
     print(m)
 
-    output = torch.randn(10, 3 * (5 + 80), 20, 20)
-    pred = torch.abs(torch.randn(10, 3, 20, 20, 4) * 200)
-    labels = torch.randn(10, 50, 5)
-    labels[..., 1:] = torch.abs(labels[..., 1:] * 200)
-    labels[..., 0] = torch.abs((labels[..., 0] * 80).type(torch.int))
+    # 第一层输出 [2, 3, 76, 76]
+    # 第二层输出 [2, 3, 38, 38]
+    # 第三层输出 [2, 3, 19, 19]
+    # output: [B, N_anchors, f_h, f_w, 4+1+n_classes]
+    # pred: [B, N_anchors, F_H, F_W, 4]
+    output1 = torch.rand(2, 3, 76, 76, (5 + 80))
+    pred1 = torch.abs(torch.rand(2, 3, 76, 76, 4) * 76)
+    output2 = torch.rand(2, 3, 38, 38, (5 + 80))
+    pred2 = torch.abs(torch.rand(2, 3, 38, 38, 4) * 38)
+    output3 = torch.rand(2, 3, 19, 19, (5 + 80))
+    pred3 = torch.abs(torch.rand(2, 3, 19, 19, 4) * 19)
+    output_list = list()
+    output_list.append({'layer_no': 0, 'output': output1, 'pred': pred1})
+    output_list.append({'layer_no': 1, 'output': output2, 'pred': pred2})
+    output_list.append({'layer_no': 2, 'output': output3, 'pred': pred3})
 
-    loss = m(output, pred, labels)
+    # labels: [B, max_num_labels, 4+1]
+    labels = torch.rand(2, 60, 5)
+    labels[..., :4] = torch.abs(labels[..., :4] * 200).type(torch.int)
+    labels[..., 4] = torch.abs((labels[..., 4] * 80).type(torch.int))
+    assert isinstance(labels, torch.Tensor)
+    assert np.alltrue(labels.numpy()[..., 4] <= 80), labels
+    target = dict()
+    target['padded_labels'] = labels
+
+    loss = m(output_list, target)
     print(loss)

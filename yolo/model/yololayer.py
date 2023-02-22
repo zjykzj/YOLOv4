@@ -51,7 +51,7 @@ class YOLOLayer(nn.Module):
     """
 
     # 预先设定的缩放倍数
-    strides = [32, 16, 8]
+    strides = [8, 16, 32]
 
     def __init__(self, cfg, layer_no, device=None):
         super(YOLOLayer, self).__init__()
@@ -135,7 +135,7 @@ class YOLOLayer(nn.Module):
 
             res = dict({
                 'layer_no': self.layer_no,
-                # output: [B, n_anchors*(5+n_classes), F_H, F_W]
+                # output: [B, n_anchors, F_H, F_W, (5+n_classes)]
                 # 5 = xywh+conf
                 'output': output,
                 # pred[..., :4]: [B, n_anchors, F_H, F_W, 4]

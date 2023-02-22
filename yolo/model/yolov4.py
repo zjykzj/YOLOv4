@@ -234,19 +234,19 @@ class Head(nn.Module):
 
         self.yolo1 = nn.Sequential(
             ConvBNAct(in_ch=128, out_ch=256, kernel_size=3, stride=1, act='leaky_relu'),
-            ConvBNAct(in_ch=256, out_ch=output_channels, kernel_size=3, stride=1, act='linear'),
+            ConvBNAct(in_ch=256, out_ch=output_channels, kernel_size=3, stride=1, bias=True, bn=False, act='linear'),
             YOLOLayer(cfg, layer_no=0, device=device)
         )
 
         self.yolo2 = nn.Sequential(
             ConvBNAct(in_ch=256, out_ch=512, kernel_size=3, stride=1, act='leaky_relu'),
-            ConvBNAct(in_ch=512, out_ch=output_channels, kernel_size=1, stride=1, act='linear'),
+            ConvBNAct(in_ch=512, out_ch=output_channels, kernel_size=1, stride=1, bias=True, bn=False, act='linear'),
             YOLOLayer(cfg, layer_no=1, device=device)
         )
 
         self.yolo3 = nn.Sequential(
             ConvBNAct(in_ch=512, out_ch=1024, kernel_size=3, stride=1, act='leaky_relu'),
-            ConvBNAct(in_ch=1024, out_ch=output_channels, kernel_size=1, stride=1, act='leaky_relu'),
+            ConvBNAct(in_ch=1024, out_ch=output_channels, kernel_size=1, stride=1, bias=True, bn=False, act='linear'),
             YOLOLayer(cfg, layer_no=2, device=device)
         )
 
