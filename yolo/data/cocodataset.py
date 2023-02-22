@@ -58,7 +58,7 @@ def get_coco_label_names():
 class COCODataset(Dataset):
 
     def __init__(self, root, name: str = 'train2017', img_size: int = 416, min_size: int = 1,
-                 model_type: str = 'YOLO', is_train: bool = True, transform=None):
+                 model_type: str = 'YOLO', is_train: bool = True, transform=None, num_classes=80):
         self.root = root
         self.name = name
         self.img_size = img_size
@@ -66,6 +66,7 @@ class COCODataset(Dataset):
         self.model_type = model_type
         self.is_train = is_train
         self.transform = transform
+        self.num_classes = num_classes
 
         if 'train' in self.name:
             json_file = 'instances_train2017.json'
@@ -105,6 +106,7 @@ class COCODataset(Dataset):
                 tmp_bbox.append(self.class_ids.index(anno['category_id']))
                 bboxes.insert(0, tmp_bbox)
         bboxes = np.array(bboxes)
+        bboxes = bboxes[np.where((bboxes[:, 4] < self.num_classes) & (bboxes[:, 4] >= 0))[0]]
 
         return img, bboxes, img_id
 
