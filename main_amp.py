@@ -107,8 +107,8 @@ def main():
     # # Scale learning rate based on global batch size
     # cfg['OPTIMIZER']['LR'] = float(cfg['OPTIMIZER']['LR']) * float(
     #     cfg['DATA']['BATCH_SIZE'] * cfg['TRAIN']['ACCUMULATION_STEPS'] * args.world_size) / 64.
-    cfg['OPTIMIZER']['LR'] = float(cfg['OPTIMIZER']['LR']) * args.world_size / float(
-        cfg['DATA']['BATCH_SIZE'] * cfg['TRAIN']['ACCUMULATION_STEPS'])
+    # cfg['OPTIMIZER']['LR'] = float(cfg['OPTIMIZER']['LR']) * args.world_size / float(
+    #     cfg['DATA']['BATCH_SIZE'] * cfg['TRAIN']['ACCUMULATION_STEPS'])
     optimizer = build_optimizer(cfg, model)
     # Initialize Amp.  Amp accepts either values or strings for the optional override arguments,
     # for convenient interoperation with argparse.
