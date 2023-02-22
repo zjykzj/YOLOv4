@@ -17,7 +17,7 @@ from .adam import build_adam
 
 def build_optimizer(cfg: Dict, model: Module):
     optimizer_type = cfg['OPTIMIZER']['TYPE']
-    lr = cfg['OPTIMIZER']['LR']
+    lr = float(cfg['OPTIMIZER']['LR'])
 
     # optimizer setup
     groups = filter_weight(cfg, model)
