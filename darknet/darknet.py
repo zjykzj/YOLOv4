@@ -22,7 +22,7 @@ class Mish(torch.nn.Module):
 
 class ConvBNAct(nn.Module):
 
-    def __init__(self, in_ch: int, out_ch: int, kernel_size: int, stride: int, act='leaky_relu'):
+    def __init__(self, in_ch: int, out_ch: int, kernel_size: int, stride: int, bias=False, bn=True, act='leaky_relu'):
         super().__init__()
         pad = (kernel_size - 1) // 2
         # H_out = floor((H_in + 2 * Pad - Dilate * (Kernel - 1) - 1) / Stride + 1)
@@ -33,8 +33,11 @@ class ConvBNAct(nn.Module):
                               kernel_size=(kernel_size, kernel_size),
                               stride=(stride, stride),
                               padding=pad,
-                              bias=False)
-        self.norm = nn.BatchNorm2d(out_ch)
+                              bias=bias)
+        if bn:
+            self.norm = nn.BatchNorm2d(out_ch)
+        else:
+            self.norm = nn.Identity()
 
         if act == 'relu':
             self.act = nn.ReLU(inplace=True)
