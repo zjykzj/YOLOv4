@@ -106,7 +106,8 @@ class COCODataset(Dataset):
                 tmp_bbox.append(self.class_ids.index(anno['category_id']))
                 bboxes.insert(0, tmp_bbox)
         bboxes = np.array(bboxes)
-        bboxes = bboxes[np.where((bboxes[:, 4] < self.num_classes) & (bboxes[:, 4] >= 0))[0]]
+        if len(bboxes) > 0:
+            bboxes = bboxes[np.where((bboxes[:, 4] < self.num_classes) & (bboxes[:, 4] >= 0))[0]]
 
         return img, bboxes, img_id
 
@@ -135,9 +136,15 @@ class COCODataset(Dataset):
             assert isinstance(img, Tensor)
             assert isinstance(target, dict)
 
-        img_info = target['img_info']
-        img_info.append(img_id)
-        img_info.append(index)
+            bboxes = target['padded_labels']
+            assert isinstance(bboxes, Tensor), bboxes
+            assert len(bboxes) > 0 and len(bboxes[0]) == 5, bboxes
+            assert np.alltrue(bboxes.numpy()[:, 4] < self.num_classes) and np.alltrue(bboxes.numpy()[:, 4] >= 0), bboxes
+
+            img_info = target['img_info']
+            img_info.append(img_id)
+            img_info.append(index)
+            target['img_info'] = img_info
 
         # print(padded_labels)
         return img, target

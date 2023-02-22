@@ -28,6 +28,7 @@ def build_data(args: Namespace, cfg: Dict):
                                 model_type=cfg['MODEL']['TYPE'],
                                 is_train=True,
                                 transform=train_transform,
+                                num_classes=cfg['MODEL']['N_CLASSES']
                                 )
     val_dataset = COCODataset(root=args.data,
                               name='val2017',
@@ -35,6 +36,7 @@ def build_data(args: Namespace, cfg: Dict):
                               model_type=cfg['MODEL']['TYPE'],
                               is_train=False,
                               transform=val_transform,
+                              num_classes=cfg['MODEL']['N_CLASSES']
                               )
 
     # 创建采样器
