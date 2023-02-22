@@ -37,6 +37,8 @@ def test_dataset(is_train=True):
                           is_train=is_train,
                           transform=transform,
                           )
+    categories_list = dataset.coco.dataset['categories']
+    print("cate num:", len(categories_list))
 
     # index = 220
     # index = 25
