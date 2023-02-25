@@ -272,7 +272,7 @@ def yolobox2xywh(box, info_img):
     """
     Transform yolo box labels to yxyx box labels.
     Args:
-        box (list): box data with the format of [yc, xc, w, h]
+        box (list): box data with the format of [y1, x1, y2, x2]
             in the coordinate system after pre-processing.
         info_img : tuple of h, w, nh, nw, dx, dy.
             src_h, src_w (int): original shape of the image
@@ -296,4 +296,33 @@ def yolobox2xywh(box, info_img):
 
     # [左上角y1，左上角x1，右下角y2，右下角x2]
     label = [x1, y1, box_w, box_h]
+    return label
+
+
+def yolobox2yxyx(box, info_img):
+    """
+    Transform yolo box labels to yxyx box labels.
+    Args:
+        box (list): box data with the format of [y1, x1, y2, x2]
+            in the coordinate system after pre-processing.
+        info_img : tuple of h, w, nh, nw, dx, dy.
+            src_h, src_w (int): original shape of the image
+            dst_h, dst_w (int): resized shape of the image
+    Returns:
+        label (list): box data with the format of [y1, x1, y2, x2]
+            in the coordinate system of the input image.
+    """
+    # (原始高，原始宽，缩放后高，缩放后宽，ROI区域左上角x0，ROI区域左上角y0)
+    src_h, src_w, dst_h, dst_w = info_img
+    # 预测框左上角和右下角坐标
+    y1, x1, y2, x2 = box
+
+    # 预测框左上角/右下角坐标，先将坐标系恢复到缩放后图像，然后缩放到原始图像
+    y1 = y1 / dst_h * src_h
+    y2 = y2 / dst_h * src_h
+    x1 = x1 / dst_w * src_w
+    x2 = x2 / dst_w * src_w
+
+    # [左上角y1，左上角x1，右下角y2，右下角x2]
+    label = [y1, x1, y2, x2]
     return label
