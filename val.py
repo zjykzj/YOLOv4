@@ -32,6 +32,11 @@ def parse_args():
                         help='config file. see readme')
     parser.add_argument('-ckpt', '--checkpoint', type=str,
                         help='pytorch checkpoint file path')
+
+    parser.add_argument('--conf-thre', type=float, default=-0.1,
+                        help="Confidence threshold")
+    parser.add_argument('--nms-thre', type=float, default=-0.1,
+                        help="NMS threshold")
     return parser.parse_args()
 
 
@@ -61,8 +66,8 @@ def main():
     # Parse config settings
     with open(args.cfg, 'r') as f:
         cfg = yaml.safe_load(f)
-
     print("successfully loaded config file: ", args.cfg)
+    print("cfg:\n", cfg)
 
     # Initiate model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -80,9 +85,9 @@ def main():
     val_loader = data_init(args, cfg)
 
     print("Begin evaluating ...")
-    conf_thresh = cfg['TEST']['CONFTHRE']
-    nms_thresh = float(cfg['TEST']['NMSTHRE'])
-    ap50_95, ap50 = validate(val_loader, model, conf_thresh, nms_thresh, device=device)
+    conf_thre = cfg['TEST']['CONFTHRE'] if args.conf_thre < 0. else args.conf_thre
+    nms_thre = cfg['TEST']['NMSTHRE'] if args.nms_thre < 0. else args.nms_thre
+    ap50_95, ap50 = validate(val_loader, model, conf_thre, nms_thre, device=device)
 
 
 if __name__ == '__main__':

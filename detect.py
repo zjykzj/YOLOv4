@@ -36,9 +36,9 @@ def parse_args():
     parser.add_argument('--dest', type=str, default="./runs/detect/",
                         help="Specify the directory where the image is saved")
 
-    parser.add_argument('--conf-thre', type=float, default=0.,
+    parser.add_argument('--conf-thre', type=float, default=-0.1,
                         help="Confidence threshold")
-    parser.add_argument('--nms-thre', type=float, default=0.,
+    parser.add_argument('--nms-thre', type=float, default=-0.1,
                         help="NMS threshold")
 
     args = parser.parse_args()
@@ -104,8 +104,8 @@ def process(args: Namespace, cfg: Dict, img_list: List[Tensor], model: Module, d
     """
     模型推理 + 后处理（置信度阈值过滤 + IoU阈值过滤）
     """
-    conf_thre = cfg['TEST']['CONFTHRE'] if args.conf_thre == 0. else args.conf_thre
-    nms_thre = cfg['TEST']['NMSTHRE'] if args.nms_thre == 0. else args.nms_thre
+    conf_thre = cfg['TEST']['CONFTHRE'] if args.conf_thre < 0. else args.conf_thre
+    nms_thre = cfg['TEST']['NMSTHRE'] if args.nms_thre < 0. else args.nms_thre
 
     outputs_list = list()
     for img in img_list:
