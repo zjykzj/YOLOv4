@@ -204,7 +204,7 @@ def show_bbox(save_dir: str, img_raw_list: List[ndarray], img_name_list: List[st
 
         draw_img_path = os.path.join(save_dir, img_name)
         print(f"\t+ Draw: {draw_img_path}")
-        plt.savefig(draw_img_path)
+        plt.savefig(draw_img_path, bbox_inches='tight', pad_inches=0.0)
 
 
 def main():
