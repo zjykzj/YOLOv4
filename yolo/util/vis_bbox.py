@@ -48,7 +48,8 @@ def vis_bbox(img, bbox, label=None, score=None, label_names=None,
     if ax is None:
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
-    ax.imshow(img.transpose((1, 2, 0)).astype(np.uint8))
+        ax.set_axis_off()
+    ax.imshow(img.transpose((1, 2, 0)).astype(np.uint8), interpolation=None)
     # If there is no bounding box to display, visualize the image and exit.
     if len(bbox) == 0:
         return ax
