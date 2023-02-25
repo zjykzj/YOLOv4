@@ -15,6 +15,58 @@
   <a href="http://commitizen.github.io/cz-cli/"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg" alt=""></a>
 </p>
 
+<!-- <style type="text/css">
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-pm1l{background-color:#FFF;color:#24292F;text-align:center;vertical-align:middle}
+.tg .tg-baqh{text-align:center;vertical-align:top}
+</style> -->
+<table class="tg">
+<thead>
+  <tr>
+    <th class="tg-baqh"></th>
+    <th class="tg-baqh">dataset</th>
+    <th class="tg-baqh">COCO AP[IoU=0.50:0.95], inference</th>
+    <th class="tg-baqh">COCO AP[IoU=0.50],      inference</th>
+    <th class="tg-baqh">Input Size</th>
+    <th class="tg-baqh">Conf Thre</th>
+    <th class="tg-baqh">NMS Thre</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tg-baqh"><span style="font-weight:400;font-style:normal">DarkNet (YOLOv4 paper)</span></td>
+    <td class="tg-baqh">coco <span style="font-weight:400;font-style:normal">val2017</span></td>
+    <td class="tg-pm1l">0.471</td>
+    <td class="tg-pm1l">0.710</td>
+    <td class="tg-baqh"><span style="font-weight:400;font-style:normal">416x416</span></td>
+    <td class="tg-baqh">/</td>
+    <td class="tg-baqh">/</td>
+  </tr>
+  <tr>
+    <td class="tg-baqh"><span style="font-weight:400;font-style:normal">Pytorch (TianXiaomo)</span></td>
+    <td class="tg-baqh">coco <span style="font-weight:400;font-style:normal">val2017</span></td>
+    <td class="tg-pm1l">0.466</td>
+    <td class="tg-pm1l">0.704</td>
+    <td class="tg-baqh"><span style="font-weight:400;font-style:normal">416x416</span></td>
+    <td class="tg-baqh">/</td>
+    <td class="tg-baqh">/</td>
+  </tr>
+  <tr>
+    <td class="tg-baqh"><span style="font-weight:400;font-style:normal">Pytorch (This)</span></td>
+    <td class="tg-baqh">coco <span style="font-weight:400;font-style:normal">val2017</span></td>
+    <td class="tg-baqh">0.35375</td>
+    <td class="tg-baqh">0.59018</td>
+    <td class="tg-baqh">608x608</td>
+    <td class="tg-baqh">0.005</td>
+    <td class="tg-baqh">0.4</td>
+  </tr>
+</tbody>
+</table>
+
 ## Table of Contents
 
 - [Table of Contents](#table-of-contents)
@@ -63,22 +115,22 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node
 ### Test
 
 ```shell
-python val.py --cfg config/yolov4_Tianxiaomo.cfg --checkpoint outputs/yolov4_Tianxiaomo_v2/model_best.pth.tar COCO
+python val.py --cfg config/yolov4_Tianxiaomo.cfg --checkpoint outputs/yolov4_Tianxiaomo/model_best.pth.tar --conf-thre 0.0001 COCO
 ```
 
 ```text
- Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.34612
- Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.57824
- Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.36227
- Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.19038
- Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.40298
- Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.43727
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.28219
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.45297
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.47952
- Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.33512
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.53886
- Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.57718
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.35375
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.59018
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.37014
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.19918
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.41367
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.45154
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.28833
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.47654
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.51961
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.40207
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.58300
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.61560
 ```
 
 ### Detect
