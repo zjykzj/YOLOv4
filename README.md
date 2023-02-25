@@ -21,6 +21,9 @@
 - [Background](#background)
 - [Installation](#installation)
 - [Usage](#usage)
+  - [Train](#train)
+  - [Test](#test)
+  - [Detect](#detect)
 - [Maintainers](#maintainers)
 - [Thanks](#thanks)
 - [Contributing](#contributing)
@@ -30,7 +33,8 @@
 
 The purpose of creating this warehouse is to better understand the YOLO series object detection network. Note: The
 realization of the project depends heavily on the implementation
-of [Tianxiaomo/pytorch-YOLOv4](https://github.com/Tianxiaomo/pytorch-YOLOv4) and [zjykzj/YOLOv3](https://github.com/zjykzj/YOLOv3)
+of [Tianxiaomo/pytorch-YOLOv4](https://github.com/Tianxiaomo/pytorch-YOLOv4)
+and [zjykzj/YOLOv3](https://github.com/zjykzj/YOLOv3)
 
 ## Installation
 
@@ -42,8 +46,49 @@ docker run --gpus all -it --rm -v </path/to/YOLOv4>:/app/YOLOv4 -v </path/to/COC
 
 ## Usage
 
-...
+### Train
 
+* One GPU
+
+```shell
+CUDA_VISIBLE_DEVICES=0 python main_amp.py -c config/yolov4_default.cfg --opt-level=O0 COCO
+```
+
+* Multi GPU
+
+```shell
+CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 --master_port "32111" main_amp.py -c config/yolov4_Tianxiaomo.cfg --opt-level=O0 COCO
+```
+
+### Test
+
+```shell
+python val.py --cfg config/yolov4_Tianxiaomo.cfg --checkpoint outputs/yolov4_Tianxiaomo_v2/model_best.pth.tar COCO
+```
+
+```text
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.34612
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.57824
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.36227
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.19038
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.40298
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.43727
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.28219
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.45297
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.47952
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.33512
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.53886
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.57718
+```
+
+### Detect
+
+```shell
+python detect.py --cfg=config/yolov4_Tianxiaomo.cfg --ckpt=outputs/yolov4_Tianxiaomo/model_best.pth.tar --source=./data/images/ --conf-thre=0.2
+```
+
+<p align="left"><img src="./data/detect/exp/bus.jpg" height="160"\> <img src="./data/detect/exp/zidane.jpg" height="160"\> <img src="./data/detect/exp/mountain.png" height="160"\></p>
+  
 ## Maintainers
 
 * zhujian - *Initial work* - [zjykzj](https://github.com/zjykzj)
