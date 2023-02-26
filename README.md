@@ -58,10 +58,10 @@
   <tr>
     <td class="tg-baqh"><span style="font-weight:400;font-style:normal">Pytorch (This)</span></td>
     <td class="tg-baqh">coco <span style="font-weight:400;font-style:normal">val2017</span></td>
-    <td class="tg-baqh">0.35375</td>
-    <td class="tg-baqh">0.59018</td>
+    <td class="tg-baqh">0.35747</td>
+    <td class="tg-baqh">0.59266</td>
     <td class="tg-baqh">608x608</td>
-    <td class="tg-baqh">0.005</td>
+    <td class="tg-baqh">0.0001</td>
     <td class="tg-baqh">0.4</td>
   </tr>
 </tbody>
@@ -119,18 +119,18 @@ python val.py --cfg config/yolov4_Tianxiaomo.cfg --checkpoint outputs/yolov4_Tia
 ```
 
 ```text
- Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.35375
- Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.59018
- Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.37014
- Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.19918
- Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.41367
- Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.45154
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.28833
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.47654
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.51961
- Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.40207
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.58300
- Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.61560
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.35747
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.59266
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.37472
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.20048
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.41536
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.46257
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.29212
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.47981
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.52298
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.40228
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.58214
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.62584
 ```
 
 ### Detect
