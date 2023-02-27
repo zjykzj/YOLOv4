@@ -58,8 +58,8 @@
   <tr>
     <td class="tg-baqh"><span style="font-weight:400;font-style:normal">Pytorch (This)</span></td>
     <td class="tg-baqh">coco <span style="font-weight:400;font-style:normal">val2017</span></td>
-    <td class="tg-baqh">0.35747</td>
-    <td class="tg-baqh">0.59266</td>
+    <td class="tg-baqh">0.35925</td>
+    <td class="tg-baqh">0.59468</td>
     <td class="tg-baqh">608x608</td>
     <td class="tg-baqh">0.0001</td>
     <td class="tg-baqh">0.4</td>
@@ -119,27 +119,27 @@ python val.py --cfg config/yolov4_Tianxiaomo.cfg --checkpoint outputs/yolov4_Tia
 ```
 
 ```text
- Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.35747
- Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.59266
- Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.37472
- Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.20048
- Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.41536
- Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.46257
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.29212
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.47981
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.52298
- Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.40228
- Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.58214
- Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.62584
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.35925
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.59468
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.37727
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.20224
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.41769
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.46202
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.29350
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.48046
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.52313
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.40198
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.58462
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.62250
 ```
 
 ### Detect
 
 ```shell
-python detect.py --cfg=config/yolov4_Tianxiaomo.cfg --ckpt=outputs/yolov4_Tianxiaomo/model_best.pth.tar --source=./data/images/ --conf-thre=0.2
+python detect.py --cfg=config/yolov4_Tianxiaomo.cfg --ckpt=outputs/yolov4_Tianxiaomo_v2/model_best.pth.tar --source=./data/images/ --conf-thre=0.2 --nms-thre=0.5
 ```
 
-<p align="left"><img src="./data/detect/exp/bus.jpg" height="300"\> <img src="./data/detect/exp/zidane.jpg" height="300"\> <img src="./data/detect/exp/mountain.png" height="300"\></p>
+<p align="left"><img src="./data/detect/exp/bus.jpg" height="300"\> <img src="./data/detect/exp/zidane.jpg" height="300"\></p>
   
 ## Maintainers
 
