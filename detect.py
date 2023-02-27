@@ -224,6 +224,7 @@ def show_bbox(save_dir: str, img_raw_list: List[ndarray], img_name_list: List[st
                         lineType=cv2.LINE_AA)
 
         im_path = os.path.join(save_dir, img_name)
+        print(f"\t+ img path: {im_path}")
         cv2.imwrite(im_path, im)
 
 
