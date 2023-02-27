@@ -128,9 +128,11 @@ def postprocess(prediction, num_classes, conf_thre=0.7, nms_thre=0.45):
     # 最大的预测数目，按照置信度进行排序后过滤
     max_num_preds = 300
 
+    # 保存每张图像的预测结果
     output = [None for _ in range(len(prediction))]
     for i, image_pred in enumerate(prediction):
         # 计算每幅图像的预测结果
+        #
         # Filter out confidence scores below threshold
         # 计算每个预测框对应的最大类别概率
         # [N_bbox, num_classes] -> ｛分类概率，对应下标｝
@@ -157,6 +159,8 @@ def postprocess(prediction, num_classes, conf_thre=0.7, nms_thre=0.45):
         if not image_pred.size(0):
             continue
         # Get detections with higher confidence scores than the threshold
+        # 也就是说，每个预测框对应不同类别后可以存在多个，它们具有相同的坐标，但是存在不同的类别
+        # 后续按照类别进行NMS过滤，相同类别的边界框进行过滤
         # (image_pred[:, 5:] * image_pred[:, 4][:, None] >= conf_thre)得到一个二维矩阵：[N_bbox, 80]
         # nonzero()得到一个二维矩阵：[N_nonzero, 2]
         # N_nonzero表示二维矩阵[N_bbox, 80]中每一行不为0的数目
@@ -171,8 +175,11 @@ def postprocess(prediction, num_classes, conf_thre=0.7, nms_thre=0.45):
         # ind[:, 1].float().unsqueeze(1): 选择置信度大于等于阈值的预测框，得到预测框的分类下标
         # [N_ind, 5] + [N_ind, 1] + [N_ind, 1] = [N_ind, 7]
         detections = torch.cat((
+            # xc/yc/w/h/conf_pred
             image_pred[ind[:, 0], :5],
+            # cls_pred
             image_pred[ind[:, 0], 5 + ind[:, 1]].unsqueeze(1),
+            # cls_ind
             ind[:, 1].float().unsqueeze(1)
         ), 1)
         # Iterate through all predicted classes
@@ -189,6 +196,7 @@ def postprocess(prediction, num_classes, conf_thre=0.7, nms_thre=0.45):
             # 计算特定类别的预测框
             # Get the detections with the particular class
             # 获取特定类别的预测框列表
+            # [[xc, yc, w, h, conf_pred, cls_pred, cls_ind], ...]
             detections_class = detections[detections[:, -1] == c]
             nms_in = detections_class.cpu().numpy()
             # 输入
@@ -203,9 +211,11 @@ def postprocess(prediction, num_classes, conf_thre=0.7, nms_thre=0.45):
             # 获取过滤后的预测框
             detections_class = detections_class[nms_out_index]
             if output[i] is None:
+                # 第一次预测，必然为空，所以直接赋值
                 # 第i张图片的预测结果为None，直接赋值
                 output[i] = detections_class
             else:
+                # 后续不为空，进行连接操作
                 # 第i张图片的预测结果不为None，连接操作
                 output[i] = torch.cat((output[i], detections_class))
 
@@ -318,10 +328,12 @@ def yolobox2yxyx(box, info_img):
     y1, x1, y2, x2 = box
 
     # 预测框左上角/右下角坐标，先将坐标系恢复到缩放后图像，然后缩放到原始图像
-    y1 = y1 / dst_h * src_h
-    y2 = y2 / dst_h * src_h
-    x1 = x1 / dst_w * src_w
-    x2 = x2 / dst_w * src_w
+    # src_h / dst_h = src_y1 / dst_y1
+    # => src_y1 = dst_y1 * src_h / dst_h
+    y1 = y1 * src_h / dst_h
+    y2 = y2 * src_h / dst_h
+    x1 = x1 * src_w / dst_w
+    x2 = x2 * src_w / dst_w
 
     # [左上角y1，左上角x1，右下角y2，右下角x2]
     label = [y1, x1, y2, x2]
