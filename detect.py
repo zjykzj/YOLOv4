@@ -69,7 +69,8 @@ def image_preprocess(args: Namespace, cfg: Dict):
             img_name_list.append(img_name)
 
             image = cv2.imread(img_path)
-            img_raw = image.copy()[:, :, ::-1].transpose((2, 0, 1))
+            img_raw = image
+            # img_raw = image.copy()[:, :, ::-1].transpose((2, 0, 1))
 
             out_img, target = transform([copy.deepcopy(image)], [np.array([])], imgsize)
 
@@ -116,7 +117,7 @@ def process(args: Namespace, cfg: Dict, img_list: List[Tensor], model: Module, d
         # 图像后处理，执行预测边界框的坐标转换以及置信度阈值过滤+NMS IoU阈值过滤
         outputs = postprocess(outputs, 80, conf_thre=conf_thre, nms_thre=nms_thre)
         # outputs: [B, Num_boxes, xc+yc+w+h+conf+cls_conf+cls_pred]
-        outputs_list.append(outputs[0])
+        outputs_list.append(outputs[0].numpy())
 
     return outputs_list
 
@@ -152,14 +153,14 @@ def parse_info(outputs_list: List, target_list: List):
 
     # 解析每幅图像计算结果，保存边界框坐标、类别名以及颜色
     bboxes_list = list()
-    classes_list = list()
+    names_list = list()
     colors_list = list()
 
     for outputs, target in zip(outputs_list, target_list):
         img_info = target['img_info']
 
         bboxes = list()
-        classes = list()
+        names = list()
         colors = list()
 
         # x1/y1: 左上角坐标
@@ -174,37 +175,56 @@ def parse_info(outputs_list: List, target_list: List):
                   (coco_class_names[cls_id], cls_conf.item()))
             box = yolobox2yxyx([y1, x1, y2, x2], img_info[:4])
             bboxes.append(box)
-            classes.append(cls_id)
+            names.append(f'{coco_class_names[cls_id]} {cls_conf.item():.2f}')
             colors.append(coco_class_colors[int(cls_pred)])
 
         bboxes_list.append(bboxes)
-        classes_list.append(classes)
+        names_list.append(names)
         colors_list.append(colors)
 
-    return bboxes_list, classes_list, colors_list, coco_class_names
+    return bboxes_list, names_list, colors_list
 
 
 def show_bbox(save_dir: str, img_raw_list: List[ndarray], img_name_list: List[str],
-              bboxes_list: List, classes_list: List, colors_list: List, coco_class_names: List):
-    import matplotlib
-    matplotlib.use('Agg')
+              bboxes_list: List, names_list: List, colors_list: List):
+    """
+    对于绘图，输入如下数据：
+    1. 原始图像
+    2. 预测框坐标
+    3. 数据集名 + 分类概率
+    """
+    line_width = 3
+    txt_color = (255, 255, 255)
 
-    from yolo.util.vis_bbox import vis_bbox
-    import matplotlib.pyplot as plt
-    plt.axis("off")
-    plt.axes().get_xaxis().set_visible(False)
-    plt.axes().get_yaxis().set_visible(False)
+    for img_raw, img_name, bboxes, names, colors in zip(
+            img_raw_list, img_name_list, bboxes_list, names_list, colors_list):
+        im = img_raw
+        lw = line_width or max(round(sum(im.shape) / 2 * 0.003), 2)  # line width
 
-    for img_raw, img_name, bboxes, classes, colors in \
-            zip(img_raw_list, img_name_list, bboxes_list, classes_list, colors_list):
-        vis_bbox(
-            img_raw, bboxes, label=classes, label_names=coco_class_names,
-            instance_colors=colors, linewidth=2)
-        # plt.show()
+        for box, name, color in zip(bboxes, names, colors):
+            # box: [y1, x1, y2, x2]
+            # print(box, name, color)
+            assert len(box) == 4, box
+            color = tuple([int(x) for x in color])
+            # p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
+            p1, p2 = (int(box[1]), int(box[0])), (int(box[3]), int(box[2]))
+            cv2.rectangle(im, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
 
-        draw_img_path = os.path.join(save_dir, img_name)
-        print(f"\t+ Draw: {draw_img_path}")
-        plt.savefig(draw_img_path, bbox_inches='tight', pad_inches=0.0)
+            tf = max(lw - 1, 1)  # font thickness
+            w, h = cv2.getTextSize(name, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, height
+            outside = p1[1] - h >= 3
+            p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
+            cv2.rectangle(im, p1, p2, color, -1, cv2.LINE_AA)  # filled
+            cv2.putText(im,
+                        name, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
+                        0,
+                        lw / 3,
+                        txt_color,
+                        thickness=tf,
+                        lineType=cv2.LINE_AA)
+
+        im_path = os.path.join(save_dir, img_name)
+        cv2.imwrite(im_path, im)
 
 
 def main():
@@ -224,8 +244,8 @@ def main():
     # (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
     save_dir.mkdir(parents=True, exist_ok=True)  # make dir
 
-    bboxes_list, classes_list, colors_list, coco_class_names = parse_info(outputs_list, target_list)
-    show_bbox(str(save_dir), img_raw_list, img_name_list, bboxes_list, classes_list, colors_list, coco_class_names)
+    bboxes_list, names_list, colors_list = parse_info(outputs_list, target_list)
+    show_bbox(str(save_dir), img_raw_list, img_name_list, bboxes_list, names_list, colors_list)
 
 
 if __name__ == '__main__':
