@@ -139,7 +139,7 @@ python val.py --cfg config/yolov4_Tianxiaomo.cfg --checkpoint outputs/yolov4_Tia
 python detect.py --cfg=config/yolov4_Tianxiaomo.cfg --ckpt=outputs/yolov4_Tianxiaomo/model_best.pth.tar --source=./data/images/ --conf-thre=0.2
 ```
 
-<p align="left"><img src="./data/detect/exp/bus.jpg" height="160"\> <img src="./data/detect/exp/zidane.jpg" height="160"\> <img src="./data/detect/exp/mountain.png" height="160"\></p>
+<p align="left"><img src="./data/detect/exp/bus.jpg" height="300"\> <img src="./data/detect/exp/zidane.jpg" height="300"\> <img src="./data/detect/exp/mountain.png" height="300"\></p>
   
 ## Maintainers
 
